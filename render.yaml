@@ -1,14 +1,7 @@
 services:
   - type: web
-    name: fitfusion-api
+    name: fitfusion-backend
     env: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
-    envVars:
-      - key: FLASK_ENV
-        value: production
-      - key: SECRET_KEY
-        value: supersecretkey
-      - key: JWT_SECRET_KEY
-        value: jwt-secret-string
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT"
+    autoDeploy: true
