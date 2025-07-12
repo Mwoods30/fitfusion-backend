@@ -1,5 +1,3 @@
-# app.py
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -12,7 +10,8 @@ from models import db, User, WorkoutHistory
 
 # Create Flask app
 app = Flask(__name__)
-CORS(app)
+# Add CORS with specific origins and support for OPTIONS method
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 # Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fitfusion.db'
@@ -33,7 +32,6 @@ def home():
 
 # ---------------- AUTH ---------------- #
 
-@app.route('/api/register', methods=['POST'])
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
@@ -105,4 +103,3 @@ if __name__ == '__main__':
     app.run(debug=True, host ='0.0.0.0', port=5000)
 # Note: In production, set debug=False and use a proper WSGI server like Gunicorn.
 # Example: gunicorn app:app --bind
-
