@@ -34,10 +34,15 @@ def home():
 # ---------------- AUTH ---------------- #
 
 @app.route('/api/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
+    print("Register request data:", data)  # DEBUG
     email = data.get('email')
     password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"msg": "Email and password are required"}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({"msg": "User already exists"}), 400
@@ -47,7 +52,6 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    # Auto-login after registration
     token = create_access_token(identity=user.id)
     return jsonify(access_token=token), 201
 
