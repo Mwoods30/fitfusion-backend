@@ -36,6 +36,8 @@ def home():
 def register():
     data = request.json
     print("Register request data:", data)  # DEBUG
+    if not data:
+        return jsonify({"msg": "No data provided"}), 400
     email = data.get('email')
     password = data.get('password')
 
