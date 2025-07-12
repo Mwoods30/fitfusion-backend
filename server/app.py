@@ -99,7 +99,9 @@ def history():
     ]
     return jsonify(result)
 
+import os
+
 if __name__ == '__main__':
-    app.run(debug=True, host ='0.0.0.0', port=5001)
-# Note: In production, set debug=False and use a proper WSGI server like Gunicorn.
-# Example: gunicorn app:app --bind
+    debug_mode = os.getenv('FLASK_DEBUG', 'True') == 'True'
+    port = int(os.getenv('PORT', 5001))
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
