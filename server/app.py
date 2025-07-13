@@ -5,20 +5,21 @@ from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, get_jwt_identity
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+import os
 
-from models import db, User, WorkoutHistory
+from models import db, User, WorkoutHistory, Workout, WorkoutExercise
 
-# Create Flask app
+# Initialize app
 app = Flask(__name__)
-# Add CORS with specific origins and support for OPTIONS method
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
-# Configuration
+# Config
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fitfusion.db'
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['JWT_SECRET_KEY'] = 'jwt-secret-string'
 
-# Initialize extensions
+# Extensions
 db.init_app(app)
 jwt = JWTManager(app)
 
@@ -34,23 +35,23 @@ def home():
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
-    print("DEBUG REGISTER DATA:", data)  # Add this for debugging
     email = data.get('email')
     password = data.get('password')
+    name = data.get('name')
 
-    if not email or not password:
-        return jsonify({"msg": "Email and password are required"}), 400
+    if not email or not password or not name:
+        return jsonify({"msg": "Email, password, and name are required"}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({"msg": "User already exists"}), 400
 
     hashed_pw = generate_password_hash(password)
-    user = User(email=email, password=hashed_pw)
+    user = User(email=email, name=name, password=hashed_pw)
     db.session.add(user)
     db.session.commit()
 
     token = create_access_token(identity=user.id)
-    return jsonify(access_token=token), 201
+    return jsonify(access_token=token, user={"name": user.name, "email": user.email}), 201
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -59,12 +60,19 @@ def login():
 
     if user and check_password_hash(user.password, data['password']):
         token = create_access_token(identity=user.id)
-        return jsonify(access_token=token)
+        return jsonify(access_token=token, user={"name": user.name, "email": user.email})
 
     return jsonify({"msg": "Incorrect email or password"}), 401
 
-# ---------------- WORKOUT GENERATOR ---------------- #
+# ---------------- PROFILE INFO ---------------- #
+@app.route('/api/me', methods=['GET'])
+@jwt_required()
+def get_me():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    return jsonify({"name": user.name, "email": user.email})
 
+# ---------------- WORKOUT GENERATOR ---------------- #
 @app.route('/api/generate', methods=['POST'])
 @jwt_required()
 def generate_workout():
@@ -74,10 +82,8 @@ def generate_workout():
     goal = data.get('goal')
     equipment = data.get('equipment')
 
-    # Simple generated workout
     workout = f"{time} mins of {goal} workout using {equipment or 'bodyweight'}"
 
-    # Save workout to history
     entry = WorkoutHistory(user_id=user_id, workout=workout)
     db.session.add(entry)
     db.session.commit()
@@ -85,7 +91,6 @@ def generate_workout():
     return jsonify({"workout": workout})
 
 # ---------------- WORKOUT HISTORY ---------------- #
-
 @app.route('/api/history', methods=['GET'])
 @jwt_required()
 def history():
@@ -98,38 +103,18 @@ def history():
     ]
     return jsonify(result)
 
-import os
-
-if __name__ == '__main__':
-    debug_mode = os.getenv('FLASK_DEBUG', 'True') == 'True'
-    port = int(os.getenv('PORT', 5001))
-    app.run(debug=debug_mode, host='0.0.0.0', port=port)
-
 # ---------------- WORKOUT LOGGING ---------------- #
-from datetime import datetime
-from flask import jsonify
-from models import Workout, WorkoutExercise
 @app.route('/api/workouts', methods=['POST'])
 @jwt_required()
 def log_workout():
     user_id = get_jwt_identity()
     data = request.json
-
-    # Expected data format:
-    # {
-    #   "date": "2025-07-12",
-    #   "exercises": [
-    #     {"name": "Bench Press", "sets": 3, "reps": 10, "weight": 135},
-    #     {"name": "Squat", "sets": 3, "reps": 8, "weight": 185}
-    #   ]
-    # }
-
     workout_date = datetime.strptime(data.get('date'), "%Y-%m-%d") if data.get('date') else datetime.utcnow()
     exercises = data.get('exercises', [])
 
     workout = Workout(user_id=user_id, date=workout_date)
     db.session.add(workout)
-    db.session.flush()  # to get workout.id
+    db.session.flush()
 
     for ex in exercises:
         workout_ex = WorkoutExercise(
@@ -143,3 +128,9 @@ def log_workout():
 
     db.session.commit()
     return jsonify({"msg": "Workout logged successfully"}), 201
+
+# ---------------- APP ENTRY ---------------- #
+if __name__ == '__main__':
+    debug_mode = os.getenv('FLASK_DEBUG', 'True') == 'True'
+    port = int(os.getenv('PORT', 5001))
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
