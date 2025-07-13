@@ -64,7 +64,7 @@ def login():
         token = create_access_token(identity=user.id)
         return jsonify(access_token=token)
 
-    return jsonify({"msg": "Bad email or password"}), 401
+    return jsonify({"msg": "Incorrect email or password"}), 401
 
 # ---------------- WORKOUT GENERATOR ---------------- #
 
