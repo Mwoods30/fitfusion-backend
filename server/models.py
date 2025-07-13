@@ -1,5 +1,4 @@
-# models.py
-
+from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -7,18 +6,19 @@ db = SQLAlchemy()
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    workouts = db.relationship('WorkoutHistory', backref='user', lazy=True)
+    password = db.Column(db.String(128), nullable=False)
+    workouts = db.relationship('Workout', backref='user', lazy=True)
 
-    def __repr__(self):
-        return f"<User {self.email}>"
-
-class WorkoutHistory(db.Model):
+class Workout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    workout = db.Column(db.String(500))
-    timestamp = db.Column(db.DateTime, server_default=db.func.now())
+    date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    exercises = db.relationship('WorkoutExercise', backref='workout', lazy=True)
 
-    def __repr__(self):
-        return f"<Workout user={self.user_id} time={self.timestamp}>"
-
+class WorkoutExercise(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    workout_id = db.Column(db.Integer, db.ForeignKey('workout.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    sets = db.Column(db.Integer, nullable=False)
+    reps = db.Column(db.Integer, nullable=False)
+    weight = db.Column(db.Float, nullable=True)  # weight can be optional for bodyweight exercises

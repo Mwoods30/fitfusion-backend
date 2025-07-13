@@ -104,3 +104,42 @@ if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_DEBUG', 'True') == 'True'
     port = int(os.getenv('PORT', 5001))
     app.run(debug=debug_mode, host='0.0.0.0', port=port)
+
+# ---------------- WORKOUT LOGGING ---------------- #
+from datetime import datetime
+from flask import jsonify
+from models import Workout, WorkoutExercise
+@app.route('/api/workouts', methods=['POST'])
+@jwt_required()
+def log_workout():
+    user_id = get_jwt_identity()
+    data = request.json
+
+    # Expected data format:
+    # {
+    #   "date": "2025-07-12",
+    #   "exercises": [
+    #     {"name": "Bench Press", "sets": 3, "reps": 10, "weight": 135},
+    #     {"name": "Squat", "sets": 3, "reps": 8, "weight": 185}
+    #   ]
+    # }
+
+    workout_date = datetime.strptime(data.get('date'), "%Y-%m-%d") if data.get('date') else datetime.utcnow()
+    exercises = data.get('exercises', [])
+
+    workout = Workout(user_id=user_id, date=workout_date)
+    db.session.add(workout)
+    db.session.flush()  # to get workout.id
+
+    for ex in exercises:
+        workout_ex = WorkoutExercise(
+            workout_id=workout.id,
+            name=ex['name'],
+            sets=ex['sets'],
+            reps=ex['reps'],
+            weight=ex.get('weight')
+        )
+        db.session.add(workout_ex)
+
+    db.session.commit()
+    return jsonify({"msg": "Workout logged successfully"}), 201
