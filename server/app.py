@@ -31,13 +31,10 @@ def home():
     return "FitFusion API is running!"
 
 # ---------------- AUTH ---------------- #
-
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
-    print("Register request data:", data)  # DEBUG
-    if not data:
-        return jsonify({"msg": "No data provided"}), 400
+    print("DEBUG REGISTER DATA:", data)  # Add this for debugging
     email = data.get('email')
     password = data.get('password')
 
