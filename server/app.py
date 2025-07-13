@@ -56,11 +56,20 @@ def register():
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
+    print("Login Request:", data)
+
     user = User.query.filter_by(email=data['email']).first()
+
+    if not user:
+        print("No user found with email:", data['email'])
+    elif not check_password_hash(user.password, data['password']):
+        print("Password mismatch for user:", data['email'])
+    else:
+        print("Login successful for:", user.email)
 
     if user and check_password_hash(user.password, data['password']):
         token = create_access_token(identity=user.id)
-        return jsonify(access_token=token, user={"name": user.name, "email": user.email})
+        return jsonify(access_token=token)
 
     return jsonify({"msg": "Incorrect email or password"}), 401
 
